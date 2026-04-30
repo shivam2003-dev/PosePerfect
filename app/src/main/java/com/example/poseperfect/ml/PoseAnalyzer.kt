@@ -10,18 +10,17 @@ import androidx.camera.core.ImageProxy
 import com.example.poseperfect.domain.model.PoseLandmark
 import com.example.poseperfect.domain.model.PoseResult
 import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
-import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerOptions
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 
 /**
- * CameraX [ImageAnalysis.Analyzer] that runs MediaPipe Pose Landmarker
- * on each frame and forwards results to [onResult].
+ * CameraX ImageAnalysis.Analyzer that runs MediaPipe Pose Landmarker
+ * on each frame and forwards results to onResult.
  *
- * The model file `pose_landmarker_lite.task` must be placed in src/main/assets/.
- * Download: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task
+ * The model file pose_landmarker_lite.task must be placed in src/main/assets/.
  */
 class PoseAnalyzer(
     context: Context,
@@ -36,15 +35,17 @@ class PoseAnalyzer(
             .setModelAssetPath(MODEL_ASSET_PATH)
             .build()
 
-        val options = PoseLandmarkerOptions.builder()
+        val options = PoseLandmarker.PoseLandmarkerOptions.builder()
             .setBaseOptions(baseOptions)
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setNumPoses(1)
             .setMinPoseDetectionConfidence(0.5f)
             .setMinPosePresenceConfidence(0.5f)
             .setMinTrackingConfidence(0.5f)
-            .setResultListener(::handleResult)
-            .setErrorListener { error ->
+            .setResultListener { result: PoseLandmarkerResult, _: MPImage ->
+                handleResult(result)
+            }
+            .setErrorListener { error: RuntimeException ->
                 Log.e(TAG, "MediaPipe error: ${error.message}", error)
             }
             .build()
@@ -52,31 +53,24 @@ class PoseAnalyzer(
         poseLandmarker = PoseLandmarker.createFromOptions(context, options)
     }
 
-    // ── ImageAnalysis.Analyzer ────────────────────────────────────────────────
-
     override fun analyze(imageProxy: ImageProxy) {
-        // Convert ImageProxy → Bitmap (ARGB_8888), rotate to upright orientation
         val bitmap = imageProxy.toBitmap().let { bmp ->
             val rotation = imageProxy.imageInfo.rotationDegrees
             if (rotation != 0) rotateBitmap(bmp, rotation) else bmp
         }
-        imageProxy.close()  // safe to close — toBitmap() copies pixel data
+        imageProxy.close()
 
         val mpImage = BitmapImageBuilder(bitmap).build()
-        // detectAsync is non-blocking; result arrives via resultListener callback
         poseLandmarker.detectAsync(mpImage, SystemClock.uptimeMillis())
     }
 
-    // ── Result handling ───────────────────────────────────────────────────────
-
-    private fun handleResult(result: PoseLandmarkerResult, @Suppress("UNUSED_PARAMETER") input: Any) {
+    private fun handleResult(result: PoseLandmarkerResult) {
         val poseList = result.landmarks()
         if (poseList.isEmpty()) {
             onNoDetection()
             return
         }
 
-        // Convert MediaPipe NormalizedLandmarks → domain model
         val landmarks: List<PoseLandmark> = poseList[0].map { lm ->
             PoseLandmark(
                 x = lm.x(),
@@ -89,13 +83,9 @@ class PoseAnalyzer(
         onResult(PoseResult(landmarks = landmarks))
     }
 
-    // ── Cleanup ───────────────────────────────────────────────────────────────
-
     fun close() {
         runCatching { poseLandmarker.close() }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun rotateBitmap(source: Bitmap, degrees: Int): Bitmap {
         val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
