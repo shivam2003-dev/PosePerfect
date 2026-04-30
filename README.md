@@ -4,6 +4,34 @@
 
 ---
 
+## ⚡ Quick Start (2 minutes)
+
+### Run on Android Emulator/Device
+
+1. **Open in Android Studio:**
+   ```bash
+   cd /Users/shivamkumar/AndroidStudioProjects/PosePerfect
+   open -a "Android Studio" .
+   ```
+
+2. **Create/Start Emulator** (if needed):
+   - Tools → Device Manager → Create Device → Pixel 6 (API 33+)
+   - Select device from dropdown
+
+3. **Run App:**
+   - Click green **▶️ Run** button (or `Shift+F10`)
+   - Wait for build (~1 minute)
+   - Grant camera permission when prompted
+
+4. **See it in action:**
+   - Stand in front of camera
+   - Watch skeleton overlay + real-time feedback
+   - Try different pose templates (top-left)
+
+📖 **Full setup guide:** See [`SETUP_GUIDE.md`](./SETUP_GUIDE.md)
+
+---
+
 ## What It Does
 
 | Feature | Details |
@@ -48,7 +76,7 @@ app/src/main/java/com/example/poseperfect/
 | Tool | Minimum Version |
 |---|---|
 | Android Studio | Meerkat / 2024.3+ |
-| Android SDK | API 24+ (target 36) |
+| Android SDK | API 26+ (target 36) |
 | Gradle | 9.4.1 (bundled in wrapper) |
 | Kotlin | 2.1.0 |
 
@@ -73,7 +101,9 @@ app/src/main/assets/pose_landmarker_lite.task
 
 ### 4. Build & Run
 
-1. Connect a physical Android device (API 24+) — **real device recommended** for camera
+1. **Connect a physical Android device (API 26+)** OR **create an Android Emulator (Pixel 6, API 33+)**
+   - Device recommended for better camera feed
+   - Emulator works fine for testing
 2. In Android Studio click **▶ Run** (or `Shift+F10`)
 3. Grant camera permission when prompted
 4. Stand 1–2 metres from the camera and hold a pose
